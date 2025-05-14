@@ -23,72 +23,73 @@ def load_analysis_results():
     with open("analysis_results.json", "r") as f:
         return json.load(f)
 
-def generate_techno_patterns(track_name, tempo, key):
-    # Define scales (MIDI note numbers)
+def get_scale(key):
     scales = {
         "C minor": [60, 62, 63, 65, 67, 68, 70],  # C4, D4, E♭4, F4, G4, A♭4, B♭4
-        "C# minor": [61, 63, 64, 66, 68, 69, 71],  # C#4, D#4, E4, F#4, G#4, A4, B4
-        "A minor": [57, 59, 60, 62, 64, 65, 67]   # A3, B3, C4, D4, E4, F4, G4
+        "C# minor": [61, 63, 64, 66, 68, 69, 71],
+        "D minor": [62, 64, 65, 67, 69, 70, 72],
+        "D# minor": [63, 65, 66, 68, 70, 71, 73],
+        "E minor": [64, 66, 67, 69, 71, 72, 74],  # E4, F#4, G4, A4, B4, C5, D5
+        "F minor": [65, 67, 68, 70, 72, 73, 75],
+        "F# minor": [66, 68, 69, 71, 73, 74, 76],
+        "G minor": [67, 69, 70, 72, 74, 75, 77],
+        "G# minor": [68, 70, 71, 73, 75, 76, 78],  # G#4, A#4, B4, C#5, D#5, E5, F#5
+        "A minor": [69, 71, 72, 74, 76, 77, 79],
+        "A# minor": [70, 72, 73, 75, 77, 78, 80],
+        "B minor": [71, 73, 74, 76, 78, 79, 81]   # B4, C#5, D5, E5, F#5, G5, A5
     }
-    
-    # Default to 128 BPM if tempo not provided
+    return scales.get(key, scales["C minor"])  # Fallback
+
+def generate_techno_patterns(track_name, tempo, key):
+    scale = get_scale(key)
     tempo = tempo if tempo else 128
     
-    # Select scale based on track
-    scale = scales.get(key, scales["C minor"])  # Fallback to C minor
-    
-    # Motif: Fast arpeggio for lead (eighth notes)
     motif = [
         (scale[0], 0.125),  # Root
         (scale[2], 0.125),  # Third
         (scale[4], 0.125),  # Fifth
-        (scale[2], 0.125),
-        (scale[0], 0.125),
+        (0, 0.125),         # Rest
         (scale[3], 0.125),  # Fourth
         (scale[4], 0.125),
-        (scale[2], 0.125)
+        (scale[2], 0.125),
+        (0, 0.125)
     ]
     
-    # Bass: Offbeat, root-heavy (quarter notes)
     bass = [
         (scale[0] - 24, 0.25),  # Root, two octaves down
-        (0, 0.25),              # Offbeat rest
-        (scale[0] - 24, 0.25),
+        (0, 0.125),             # Rest
+        (scale[0] - 24, 0.125),
+        (scale[2] - 24, 0.25),  # Third
         (0, 0.25)
     ]
     
-    # Chords: Sustained minor triads (whole notes)
     chords = [
-        (scale[0], 1.0),  # Root
+        (scale[0], 1.0),  # Root (i)
         (scale[2], 1.0),  # Third
         (scale[4], 1.0),  # Fifth
-        (scale[3], 1.0),  # Fourth (for i–iv progression)
-        (scale[5], 1.0),  # Sixth
-        (scale[7] - 12, 1.0)  # Seventh, octave down
+        (scale[3], 1.0),  # Root (iv)
+        (scale[5], 1.0),  # Third
+        (scale[0], 1.0)   # Fifth
     ]
     
     return motif, bass, chords
 
 def main():
-    # Load analysis results
     analysis_results = load_analysis_results()
     
-    # Define tracks with keys
     tracks = [
-        ("cyberia_layer_2", "C minor"),
-        ("duvet", "C# minor"),
-        ("big_in_japan", "A minor")
+        ("cyberia_layer_2", "E minor"),
+        ("duvet", "B minor"),
+        ("big_in_japan", "G# minor")
     ]
     
-    for track_name, key in tracks:
-        # Get tempo from analysis or default to 128
-        tempo = analysis_results.get(track_name, {}).get("tempo", 128)
+    for track_name, default_key in tracks:
+        result = analysis_results.get(track_name, {})
+        tempo = result.get("tempo", 128)
+        key = result.get("key", default_key)
         print(f"Generating MIDI for {track_name} with tempo {tempo:.2f} BPM and key {key}")
         
-        # Generate patterns
         motif, bass, chords = generate_techno_patterns(track_name, tempo, key)
-        
-        # Create MIDI files
         create_midi(f"{track_name}_motif.mid", motif, tempo)
         create_midi(f"{track_name}_bass.mid", bass, tempo)
         create_midi(f"{track_name}_chords.mid", chords, tempo)
